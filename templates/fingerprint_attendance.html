@@ -1,0 +1,312 @@
+{% extends 'base.html' %}
+
+{% block title %}Fingerprint Attendance - GoDigital{% endblock %}
+
+{% block content %}
+
+<div class="glass" style="text-align:center; padding:3rem 2rem;">
+    <h1 style="font-size:2.5rem; margin-bottom:0.8rem; background:linear-gradient(135deg,#a78bfa,#7c3aed); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">
+        <i class="fas fa-fingerprint"></i> Attendance Check-In/Out
+    </h1>
+    <p style="color:var(--muted); font-size:1.2rem; margin-bottom:2.5rem;">Biometric Verification - Fingerprint & Face Recognition</p>
+
+    <!-- Current Time -->
+    <div class="glass" style="margin-bottom:2rem; padding:1.5rem;">
+        <h3 style="color:var(--muted); margin:0 0 1rem;">Current Time</h3>
+        <p style="font-size:2.5rem; font-weight:700; margin:0; color:#a78bfa;" id="current-time">--:--:--</p>
+        <small style="color:var(--muted);" id="status-indicator">Initializing...</small>
+    </div>
+
+    <div style="max-width:600px; margin:0 auto;">
+        <!-- Face Recognition Section -->
+        <div class="glass" style="padding:2.5rem 1.5rem; margin-bottom:2rem;">
+            <h3 style="margin-top:0; color:#a78bfa;"><i class="fas fa-face-smile"></i> Face Recognition</h3>
+            
+            <!-- Camera Video Feed -->
+            <div style="width:100%; max-width:400px; margin:0 auto 1.5rem; border:3px solid rgba(124,58,237,0.5); border-radius:20px; overflow:hidden; background:#000;">
+                <video id="faceCamera" style="width:100%; height:300px; display:block;" playsinline autoplay></video>
+            </div>
+
+            <button type="button" id="captureFaceBtn" class="btn" style="width:100%; background:#8b5cf6; margin-bottom:1rem;">
+                <i class="fas fa-camera"></i> Capture Face
+            </button>
+
+            <div id="faceStatus" style="color:#10b981; font-weight:600; font-size:1.1rem; display:none;">
+                ✓ Face Verified Successfully
+            </div>
+
+            <div style="background:rgba(255,255,255,0.1); padding:1rem; border-radius:8px; margin-top:1rem; font-size:0.9rem; color:var(--muted);">
+                <strong>💡 Camera Setup:</strong><br>
+                • Click "Capture Face" to request camera permission<br>
+                • Look for a camera icon in your browser's address bar<br>
+                • Click it and select "Allow" for camera access<br>
+                • If blocked, refresh the page and try again<br>
+                • <strong>Browser Support:</strong> Chrome, Firefox, Edge (latest versions)<br>
+                • <strong>Note:</strong> Some browsers require HTTPS for camera access
+            </div>
+        </div>
+
+        <!-- Attendance Form -->
+        <div class="glass" style="padding:2.5rem 1.5rem;">
+            <h3 style="margin-top:0; color:#a78bfa;"><i class="fas fa-fingerprint"></i> Fingerprint Scan</h3>
+            
+            <form method="POST" action="{{ url_for('attendance.fingerprint_attendance') }}" id="attendanceForm">
+                            <div class="form-group" style="margin-bottom:1.5rem;">
+                                <label for="department" style="color:var(--muted); font-weight:500; margin-bottom:0.5rem;">Department</label>
+                                <select name="department" id="department" required style="width:100%; padding:1rem; background:rgba(30,35,55,0.7); color:white; border:1px solid var(--border); border-radius:12px; font-size:1.1rem;">
+                                    <option value="">-- Select Department --</option>
+                                    <option value="General">General</option>
+                                    <option value="IT">IT</option>
+                                    <option value="HR">HR</option>
+                                    <option value="Finance">Finance</option>
+                                    <option value="Sales">Sales</option>
+                                    <option value="Marketing">Marketing</option>
+                                    <option value="Operations">Operations</option>
+                                </select>
+                            </div>
+                            <select name="attendance_type" required style="width:100%; padding:1rem; margin-bottom:1.5rem; background:rgba(30,35,55,0.7); color:white; border:1px solid var(--border); border-radius:12px; font-size:1.1rem;">
+                                <option value="">-- Select Work Type --</option>
+                                <option value="Onsite">🏢 Onsite (Office)</option>
+                                <option value="WFH">🏠 Work From Home</option>
+                                <option value="Field">🚗 Field Work</option>
+                            </select>
+
+                <button type="submit" class="btn btn-primary" style="width:100%; font-size:1.3rem; padding:1.2rem;">
+                    <i class="fas fa-fingerprint"></i> Mark Attendance
+                </button>
+            </form>
+
+            <!-- Time Status Info -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:1.5rem;">
+                <div style="background:rgba(16,185,129,0.2); padding:1rem; border-radius:12px; border:1px solid rgba(16,185,129,0.5);">
+                    <small style="color:var(--muted);">ON-TIME RANGE</small>
+                    <p style="font-size:1.3rem; font-weight:700; color:#10b981; margin:0.5rem 0 0;">10:00 - 10:15</p>
+                </div>
+                <div style="background:rgba(239,68,68,0.2); padding:1rem; border-radius:12px; border:1px solid rgba(239,68,68,0.5);">
+                    <small style="color:var(--muted);">LATE AFTER</small>
+                    <p style="font-size:1.3rem; font-weight:700; color:#ef4444; margin:0.5rem 0 0;">10:16+</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes pulse {
+    0%, 100% { transform:scale(1); opacity:0.7; }
+    50% { transform:scale(1.12); opacity:1; }
+}
+
+.btn {
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(124,58,237,0.4);
+}
+
+#faceCamera {
+    object-fit: cover;
+}
+</style>
+
+<script>
+    // Update current time every second
+    function updateTime() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('en-US', { hour12: false });
+        document.getElementById('current-time').textContent = timeString;
+        
+        // Determine if on-time or late
+        const hours = now.getHours();
+        const minutes = now.getMinutes();
+        const totalMinutes = hours * 60 + minutes;
+        const onTimeLimit = 10 * 60 + 15; // 10:15
+        
+        const indicator = document.getElementById('status-indicator');
+        const attendanceForm = document.getElementById('attendanceForm');
+        
+        if (totalMinutes <= onTimeLimit) {
+            indicator.textContent = '✓ ON-TIME WINDOW';
+            indicator.style.color = '#10b981';
+        } else {
+            indicator.textContent = '⚠ LATE - Check-in after 10:16';
+            indicator.style.color = '#ef4444';
+        }
+    }
+    
+    updateTime();
+    setInterval(updateTime, 1000);
+    
+    // Face Recognition Setup
+    let faceStream = null;
+
+    // Check browser compatibility
+    function checkBrowserSupport() {
+        const faceStatus = document.getElementById('faceStatus');
+
+        if (!navigator) {
+            faceStatus.innerHTML = '⚠ Browser compatibility issue. Please use a modern browser (Chrome, Firefox, Edge).';
+            faceStatus.style.display = 'block';
+            faceStatus.style.color = '#ef4444';
+            return false;
+        }
+
+        // Check for any camera API support (modern or legacy)
+        const hasModernAPI = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+        const hasLegacyAPI = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+
+        if (!hasModernAPI && !hasLegacyAPI) {
+            faceStatus.innerHTML = '⚠ Your browser does not support camera access. Please update to a modern browser (Chrome, Firefox, Edge).';
+            faceStatus.style.display = 'block';
+            faceStatus.style.color = '#ef4444';
+            return false;
+        }
+
+        return true;
+    }
+
+    async function startCamera() {
+        if (faceStream) {
+            return;
+        }
+
+        // Check compatibility first
+        if (!checkBrowserSupport()) {
+            throw new Error('Browser not supported');
+        }
+
+        try {
+            const video = document.getElementById('faceCamera');
+
+            // Try modern API first
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                faceStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user'
+                    }
+                });
+            } else {
+                // Fallback to older API
+                const getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+                faceStream = await new Promise((resolve, reject) => {
+                    getUserMedia({ video: true }, resolve, reject);
+                });
+            }
+
+            video.srcObject = faceStream;
+
+            // Wait for the video to be ready
+            await new Promise(resolve => {
+                if (video.readyState >= 2) {
+                    resolve();
+                } else {
+                    video.onloadedmetadata = resolve;
+                }
+            });
+        } catch (err) {
+            console.error('Camera access denied or not available:', err);
+            const faceStatus = document.getElementById('faceStatus');
+            faceStatus.style.display = 'block';
+            faceStatus.style.color = '#ef4444';
+
+            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                faceStatus.innerHTML = '⚠ Camera access denied. Please click the camera icon in your browser address bar and allow access.';
+            } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                faceStatus.innerHTML = '⚠ No camera found. Please connect a camera and try again.';
+            } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+                faceStatus.innerHTML = '⚠ Camera is already in use by another application. Please close other apps using the camera.';
+            } else if (err.name === 'OverconstrainedError') {
+                faceStatus.innerHTML = '⚠ Camera constraints not supported. Trying with basic settings...';
+                // Try with basic constraints
+                try {
+                    const video = document.getElementById('faceCamera');
+                    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                        faceStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    } else {
+                        const getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+                        faceStream = await new Promise((resolve, reject) => {
+                            getUserMedia({ video: true }, resolve, reject);
+                        });
+                    }
+                    video.srcObject = faceStream;
+                    await new Promise(resolve => {
+                        if (video.readyState >= 2) {
+                            resolve();
+                        } else {
+                            video.onloadedmetadata = resolve;
+                        }
+                    });
+                    return; // Success with basic constraints
+                } catch (fallbackErr) {
+                    faceStatus.innerHTML = '⚠ Camera error: ' + fallbackErr.message;
+                }
+            } else {
+                faceStatus.innerHTML = '⚠ Camera error: ' + (err.message || 'Unknown error') + '. Try refreshing the page or using a different browser.';
+            }
+            throw err;
+        }
+    }
+
+    // Capture face image
+    document.getElementById('captureFaceBtn').addEventListener('click', async function() {
+        const faceStatus = document.getElementById('faceStatus');
+        faceStatus.style.display = 'none';
+
+        try {
+            await startCamera();
+
+            const video = document.getElementById('faceCamera');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+
+            // Convert canvas to blob and send to server
+            canvas.toBlob(async (blob) => {
+                const formData = new FormData();
+                formData.append('face_image', blob, 'face.jpg');
+
+                try {
+                    const response = await fetch('{{ url_for("attendance.verify_face") }}', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (data.verified) {
+                        faceStatus.style.display = 'block';
+                        faceStatus.style.color = '#10b981';
+                        faceStatus.textContent = '✓ Face Verified Successfully';
+                    } else {
+                        faceStatus.style.display = 'block';
+                        faceStatus.style.color = '#ef4444';
+                        faceStatus.textContent = '✗ Face Verification Failed - Try Again';
+                    }
+                } catch (err) {
+                    console.error('Face verification error:', err);
+                    faceStatus.style.display = 'block';
+                    faceStatus.style.color = '#ef4444';
+                    faceStatus.textContent = '⚠ Unable to verify face. Check your network and try again.';
+                }
+            });
+        } catch (err) {
+            // Already handled in startCamera
+        }
+    });
+
+    // Clean up camera stream when page unloads
+    window.addEventListener('beforeunload', () => {
+        if (faceStream) {
+            faceStream.getTracks().forEach(track => track.stop());
+        }
+    });
+</script>
+
+{% endblock %}

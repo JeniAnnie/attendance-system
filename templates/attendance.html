@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container">
+
+<h2>Daily Attendance Check-In/Out</h2>
+
+<p style="text-align: center; color: #333; font-size: 1.05em; margin-bottom: 30px;">Welcome to our attendance system. Please check in when you arrive and check out when you leave.</p>
+
+<form method="POST" action="/mark">
+    <div class="form-grid">
+        <div class="form-group">
+            <label>🆔 Employee ID</label>
+            <input type="text" name="emp_id" required placeholder="Enter your ID">
+        </div>
+        
+        <div class="form-group">
+            <label>👤 Employee Name</label>
+            <input type="text" name="name" required placeholder="Enter your name">
+        </div>
+        
+        <div class="form-group">
+            <label>🏢 Work Type</label>
+            <select name="type">
+                <option value="Onsite">🏢 Onsite</option>
+                <option value="WFH">🏠 Work From Home</option>
+                <option value="Field">🚗 Field</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>📍 Location (if Field)</label>
+            <input type="text" name="location" placeholder="Enter location">
+        </div>
+        
+        <div class="form-group full-width">
+            <label>📝 Remarks</label>
+            <input type="text" name="remarks" placeholder="Any additional notes">
+        </div>
+    </div>
+    
+    <button type="submit">Submit Attendance</button>
+</form>
+
+<!-- Face Capture Section -->
+<div class="glass" style="max-width:600px; margin:2rem auto; padding:2rem;">
+    <h3 style="color:#a78bfa;"><i class="fas fa-face-smile"></i> Face Recognition Attendance</h3>
+    <div style="width:100%; max-width:400px; margin:0 auto 1.5rem; border:3px solid rgba(124,58,237,0.5); border-radius:20px; overflow:hidden; background:#000;">
+        <video id="faceCamera" style="width:100%; height:300px; display:block;" playsinline autoplay></video>
+    </div>
+    <button type="button" id="captureFaceBtn" class="btn" style="width:100%; background:#8b5cf6; margin-bottom:1rem;">
+        <i class="fas fa-camera"></i> Capture Face
+    </button>
+    <div id="faceStatus" style="color:#10b981; font-weight:600; font-size:1.1rem; display:none;"></div>
+    <div style="background:rgba(255,255,255,0.1); padding:1rem; border-radius:8px; margin-top:1rem; font-size:0.9rem; color:var(--muted);">
+        <strong>💡 Camera Setup:</strong><br>
+        • Click "Capture Face" to request camera permission<br>
+        • Look for a camera icon in your browser's address bar<br>
+        • Click it and select "Allow" for camera access<br>
+        • If blocked, refresh the page and try again<br>
+        • <strong>Browser Support:</strong> Chrome, Firefox, Edge (latest versions)<br>
+        • <strong>Note:</strong> Some browsers require HTTPS for camera access
+    </div>
+</div>
+
+<script>
+// Camera setup
+let video = document.getElementById('faceCamera');
+let captureBtn = document.getElementById('captureFaceBtn');
+let faceStatus = document.getElementById('faceStatus');
+
+if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(function(stream) {
+            video.srcObject = stream;
+            video.play();
+        })
+        .catch(function(err) {
+            faceStatus.style.display = 'block';
+            faceStatus.style.color = '#ef4444';
+            faceStatus.textContent = 'Camera access denied.';
+        });
+}
+
+captureBtn.onclick = function() {
+    let canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    let ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    let imageData = canvas.toDataURL('image/jpeg');
+
+    faceStatus.style.display = 'block';
+    faceStatus.style.color = '#a78bfa';
+    faceStatus.textContent = 'Verifying...';
+
+    fetch('/attendance/recognize-face', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: imageData })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            faceStatus.style.color = '#10b981';
+            faceStatus.textContent = data.message;
+        } else {
+            faceStatus.style.color = '#ef4444';
+            faceStatus.textContent = data.message || 'Face not recognized.';
+        }
+    })
+    .catch(() => {
+        faceStatus.style.color = '#ef4444';
+        faceStatus.textContent = 'Error verifying face.';
+    });
+};
+</script>
+
+<h2>Today's Attendance Records</h2>
+
+<table>
+<tr>
+<th>ID</th>
+<th>Emp ID</th>
+<th>Name</th>
+<th>Status</th>
+<th>Type</th>
+<th>Check In</th>
+<th>Check Out</th>
+<th>Total Hours</th>
+<th>Location</th>
+<th>Remarks</th>
+<th>Date</th>
+</tr>
+
+{% for record in records %}
+
+<tr>
+<td>{{ record.id }}</td>
+<td>{{ record.emp_id }}</td>
+<td>{{ record.emp_name }}</td>
+<td>{{ record.status }}</td>
+<td>{{ record.attendance_type }}</td>
+<td>{{ record.check_in }}</td>
+<td>{{ record.check_out or "Not checked out" }}</td>
+<td>{{ record.work_hours or "N/A" }}</td>
+<td>{{ record.location }}</td>
+<td>{{ record.remarks }}</td>
+<td>{{ record.date }}</td>
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+{% endblock %}

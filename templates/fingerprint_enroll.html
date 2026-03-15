@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Fingerprint Enrollment - GoDigital{% endblock %}
+
+{% block content %}
+
+<div class="glass" style="max-width:600px; margin:0 auto; padding:2.5rem;">
+    <h1 style="font-size:2.3rem; text-align:center; margin-bottom:0.8rem; background:linear-gradient(135deg,#a78bfa,#7c3aed); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">
+        <i class="fas fa-user-plus"></i> Enroll New Employee
+    </h1>
+    <p style="color:var(--muted); text-align:center; margin-bottom:2rem;">Register fingerprint for secure attendance</p>
+
+    <form method="POST" action="{{ url_for('attendance.enroll') }}">
+        <div class="glass" style="margin-bottom:1.8rem;">
+            <label style="display:block; margin-bottom:0.6rem; color:var(--muted); font-weight:500;">Full Name</label>
+            <input type="text" name="name" required placeholder="Enter full name" style="width:100%; padding:1rem; background:rgba(30,35,55,0.7); border:1px solid var(--border); border-radius:12px; color:white; font-size:1.1rem;">
+        </div>
+
+        <div class="glass" style="margin-bottom:1.8rem;">
+            <label style="display:block; margin-bottom:0.6rem; color:var(--muted); font-weight:500;">Employee ID</label>
+            <input type="text" name="emp_id" required placeholder="EMP001" style="width:100%; padding:1rem; background:rgba(30,35,55,0.7); border:1px solid var(--border); border-radius:12px; color:white; font-size:1.1rem;">
+            <small style="color:var(--muted); font-size:0.8rem;">Use unique ID like EMP001, EMP002, etc.</small>
+        </div>
+
+        <div class="glass" style="margin-bottom:2.5rem;">
+            <label style="display:block; margin-bottom:0.6rem; color:var(--muted); font-weight:500;">Department</label>
+            <select name="department" style="width:100%; padding:1rem; background:rgba(30,35,55,0.7); border:1px solid var(--border); border-radius:12px; color:white; font-size:1.1rem;">
+                <option value="General">General</option>
+                <option value="IT">IT</option>
+                <option value="HR">HR</option>
+                <option value="Finance">Finance</option>
+                <option value="Sales">Sales</option>
+                <option value="Marketing">Marketing</option>
+                <option value="Operations">Operations</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%; font-size:1.3rem; padding:1.2rem;">
+            <i class="fas fa-fingerprint"></i> Enroll Employee
+        </button>
+    </form>
+
+    <div style="margin-top:2rem; text-align:center;">
+        <a href="{{ url_for('attendance.employee_list') }}" class="btn" style="background:rgba(124,58,237,0.2); color:#a78bfa; border:1px solid rgba(124,58,237,0.5);">
+            <i class="fas fa-users"></i> View All Employees
+        </a>
+    </div>
+
+    <!-- Bulk Enrollment Section -->
+    <div class="glass" style="margin-top:2rem; padding:2rem;">
+        <h3 style="margin-bottom:1rem; color:#a78bfa;"><i class="fas fa-users-cog"></i> Bulk Enrollment</h3>
+        <p style="color:var(--muted); font-size:0.9rem; margin-bottom:1.5rem;">
+            Add multiple employees at once. Format: Name,EmployeeID,Department (one per line)
+        </p>
+
+        <form method="POST" action="{{ url_for('attendance.bulk_enroll') }}">
+            <textarea name="bulk_data" rows="6" placeholder="John Doe,EMP001,IT
+Jane Smith,EMP002,HR
+Bob Johnson,EMP003,Finance" style="width:100%; padding:1rem; background:rgba(30,35,55,0.7); border:1px solid var(--border); border-radius:12px; color:white; font-size:1rem; font-family:monospace; margin-bottom:1.5rem;"></textarea>
+
+            <button type="submit" class="btn btn-primary" style="width:100%; font-size:1.2rem; padding:1rem;">
+                <i class="fas fa-upload"></i> Bulk Enroll Employees
+            </button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

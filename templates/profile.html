@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block title %}Profile - GoDigital{% endblock %}
+
+{% block content %}
+
+<div class="glass" style="padding:2rem; margin-bottom:2rem;">
+    <h1 style="font-size:2.2rem; margin-bottom:1.5rem; background:linear-gradient(135deg,#a78bfa,#7c3aed); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">
+        <i class="fas fa-user-circle"></i> Employee Profile
+    </h1>
+
+    {% set today = today %}
+    {% set today_record = None %}
+    {% for r in records %}
+        {% if r.date == today and today_record is none %}
+            {% set today_record = r %}
+        {% endif %}
+    {% endfor %}
+    {% if today_record and today_record.check_in and not today_record.check_out %}
+    <div class="glass-card" style="margin-bottom:1.5rem; border-left:5px solid #f59e0b; background:rgba(255,255,0,0.08); color:#ef4444;">
+        <i class="fas fa-exclamation-triangle"></i> You have not checked out today! Please remember to check out before leaving.
+        <form method="POST" action="{{ url_for('attendance.checkout', emp_id=emp.emp_id) }}" style="margin-top:1rem;">
+            <button type="submit" class="btn btn-warning" style="width:100%; font-size:1.1rem;">Check-Out</button>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Employee Details -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1.5rem; margin-bottom:2rem;">
+        <div class="glass">
+            <h4 style="color:var(--muted); margin:0 0 0.5rem;">Employee ID</h4>
+            <p style="font-size:1.5rem; font-weight:700; margin:0;">{{ emp.emp_id }}</p>
+        </div>
+        <div class="glass">
+            <h4 style="color:var(--muted); margin:0 0 0.5rem;">Full Name</h4>
+            <p style="font-size:1.5rem; font-weight:700; margin:0;">{{ emp.name }}</p>
+        </div>
+        <div class="glass">
+            <h4 style="color:var(--muted); margin:0 0 0.5rem;">Department</h4>
+            <p style="font-size:1.5rem; font-weight:700; margin:0;">{{ today_record.department or emp.department or 'General' }}</p>
+        </div>
+        <div class="glass">
+            <h4 style="color:var(--muted); margin:0 0 0.5rem;">Email</h4>
+            <p style="font-size:0.95rem; font-weight:600; margin:0;">{{ emp.email }}</p>
+        </div>
+    </div>
+
+    <!-- Edit Employee Info Form -->
+    <form method="POST" action="{{ url_for('attendance.edit_profile', emp_id=emp.emp_id) }}" style="max-width:400px; margin:0 auto;">
+        <input type="hidden" name="emp_id" value="{{ emp.emp_id }}">
+        <h3 style="color:#a78bfa; margin-bottom:1rem;">Edit Info</h3>
+        <div class="form-group">
+            <label for="department">Department</label>
+            <select id="department" name="department" style="width:100%; padding:0.8rem; margin-bottom:1rem; background:rgba(30,35,55,0.7); color:white; border:1px solid var(--border); border-radius:12px;">
+                <option value="{{ emp.department }}" selected>{{ emp.department or 'General' }}</option>
+                <option value="General">General</option>
+                <option value="IT">IT</option>
+                <option value="HR">HR</option>
+                <option value="Finance">Finance</option>
+                <option value="Sales">Sales</option>
+                <option value="Marketing">Marketing</option>
+                <option value="Operations">Operations</option>
+                <option value="Editor">Editor</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" value="{{ emp.email }}" style="width:100%; padding:0.8rem; margin-bottom:1rem;">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;">Save Changes</button>
+    </form>
+</div>
+
+<!-- Attendance History -->
+<div class="glass" style="padding:2rem;">
+    <h2 style="margin-top:0; color:#a78bfa;"><i class="fas fa-history"></i> Recent Attendance</h2>
+    
+    {% if records %}
+    <div class="attendance-cards">
+        {% for record in records %}
+        <div class="attendance-card glass-card">
+            <div class="card-header">
+                <div class="card-title">{{ record.date }}</div>
+                <div class="card-subtitle">{{ record.department or 'General' }}</div>
+            </div>
+
+            <div class="card-row">
+                <div class="card-row-label">Check-In</div>
+                <div class="card-row-value">{{ record.check_in or '-' }}</div>
+            </div>
+            <div class="card-row">
+                <div class="card-row-label">Check-Out</div>
+                <div class="card-row-value">{{ record.check_out or '-' }}</div>
+            </div>
+            <div class="card-row">
+                <div class="card-row-label">Type</div>
+                <div class="card-row-value">
+                    {% if record.attendance_type == 'Onsite' %}
+                    🏢 Onsite
+                    {% elif record.attendance_type == 'WFH' %}
+                    🏠 WFH
+                    {% elif record.attendance_type == 'Field' %}
+                    🚗 Field
+                    {% else %}
+                    {{ record.attendance_type or '-' }}
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-row">
+                <div class="card-row-label">Status</div>
+                <div class="card-row-value">
+                    {% if record.status == 'On-Time' %}
+                    <span class="status-badge status-present">✓ On-Time</span>
+                    {% elif record.status == 'Late' %}
+                    <span class="status-badge status-late">⚠ Late</span>
+                    {% else %}
+                    <span class="status-badge" style="background:var(--border); color:var(--muted);">{{ record.status or '-' }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-footer-item">
+                    <span class="card-footer-label">Hours</span>
+                    <span class="card-footer-value">{% if record.total_hours is not none %}{{ record.total_hours | round(2) }} h{% else %}-{% endif %}</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="padding:2rem; text-align:center; color:var(--muted);">
+        No attendance records yet.
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

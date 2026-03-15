@@ -1,0 +1,383 @@
+{% extends 'base.html' %}
+
+{% block title %}Face Attendance - GoDigital{% endblock %}
+
+{% block content %}
+
+<div class="glass" style="text-align:center; padding:3rem 2rem;">
+    <h1 style="font-size:2.5rem; margin-bottom:0.8rem; background:linear-gradient(135deg,#a78bfa,#7c3aed); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">
+        <i class="fas fa-face-smile"></i> Face Recognition Attendance
+    </h1>
+    <p style="color:var(--muted); font-size:1.2rem; margin-bottom:2.5rem;">Contactless biometric verification</p>
+
+    <div style="max-width:600px; margin:0 auto;">
+        <!-- Face Recognition Section -->
+        <div class="glass" style="padding:2.5rem 1.5rem; margin-bottom:2rem;">
+            <h3 style="margin-top:0; color:#a78bfa;"><i class="fas fa-camera"></i> Face Capture</h3>
+
+            <!-- Camera Video Feed -->
+            <div style="width:100%; max-width:400px; margin:0 auto 1.5rem; border:3px solid rgba(124,58,237,0.5); border-radius:20px; overflow:hidden; background:#000;">
+                <video id="faceCamera" style="width:100%; height:300px; display:block;" playsinline autoplay></video>
+            </div>
+
+            <button type="button" id="captureFaceBtn" class="btn" style="width:100%; background:#8b5cf6; margin-bottom:1rem;">
+                <i class="fas fa-camera"></i> Capture Face
+            </button>
+
+            <div id="faceStatus" style="color:#10b981; font-weight:600; font-size:1.1rem; display:none;">
+                ✓ Face Captured Successfully
+            </div>
+
+            <div id="employeeInfo" style="display:none; margin-top:1rem; padding:1rem; background:rgba(16,185,129,0.1); border-radius:8px; border:1px solid rgba(16,185,129,0.3);">
+                <h4 style="color:#10b981; margin:0 0 0.5rem;">Employee Recognized</h4>
+                <p id="empDetails" style="margin:0; color:var(--text-primary);"></p>
+            </div>
+        </div>
+
+        <!-- Enrollment Form (shown when employee is not recognized) -->
+        <div id="enrollmentForm" class="glass" style="padding:2.5rem 1.5rem; display:none;">
+            <h3 style="margin-top:0; color:#a78bfa;"><i class="fas fa-user-plus"></i> Enroll New Employee</h3>
+            <p style="color:var(--muted); font-size:1rem; margin-bottom:1.5rem;">Enter employee details to enroll and mark first attendance.</p>
+
+            <form id="faceEnrollForm">
+                <div class="form-group" style="margin-bottom:1.5rem;">
+                    <label for="emp_id" style="color:var(--muted); font-weight:500; margin-bottom:0.5rem; display:block;">Employee ID</label>
+                    <input type="text" id="emp_id" name="emp_id" required style="width:100%; padding:1rem; background:rgba(30,35,55,0.7); color:white; border:1px solid var(--border); border-radius:12px; font-size:1.1rem;" placeholder="E.g. EMP123" />
+                </div>
+                <div class="form-group" style="margin-bottom:1.5rem;">
+                    <label for="name" style="color:var(--muted); font-weight:500; margin-bottom:0.5rem; display:block;">Full Name</label>
+                    <input type="text" id="name" name="name" required style="width:100%; padding:1rem; background:rgba(30,35,55,0.7); color:white; border:1px solid var(--border); border-radius:12px; font-size:1.1rem;" placeholder="E.g. John Doe" />
+                </div>
+                <div class="form-group" style="margin-bottom:1.5rem;">
+                    <label for="department" style="color:var(--muted); font-weight:500; margin-bottom:0.5rem; display:block;">Department</label>
+                    <select id="department" name="department" style="width:100%; padding:1rem; background:rgba(30,35,55,0.7); color:white; border:1px solid var(--border); border-radius:12px; font-size:1.1rem;">
+                        <option value="General">General</option>
+                        <option value="IT">IT</option>
+                        <option value="HR">HR</option>
+                        <option value="Finance">Finance</option>
+                        <option value="Sales">Sales</option>
+                        <option value="Marketing">Marketing</option>
+                        <option value="Operations">Operations</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width:100%; font-size:1.3rem; padding:1.2rem;">
+                    <i class="fas fa-save"></i> Enroll & Check In
+                </button>
+            </form>
+        </div>
+
+        <!-- Attendance Form (shown when employee is recognized) -->
+        <div id="attendanceForm" class="glass" style="padding:2.5rem 1.5rem; display:none;">
+            <h3 style="margin-top:0; color:#a78bfa;"><i class="fas fa-clock"></i> Mark Attendance</h3>
+
+            <form id="faceAttendanceForm">
+                <input type="hidden" id="recognized_emp_id" name="emp_id">
+
+                <div class="form-group" style="margin-bottom:1.5rem;">
+                    <label for="attendance_department" style="color:var(--muted); font-weight:500; margin-bottom:0.5rem; display:block;">Department</label>
+                    <select id="attendance_department" name="department" style="width:100%; padding:1rem; background:rgba(30,35,55,0.7); color:white; border:1px solid var(--border); border-radius:12px; font-size:1.1rem;">
+                        <option value="General">General</option>
+                        <option value="IT">IT</option>
+                        <option value="HR">HR</option>
+                        <option value="Finance">Finance</option>
+                        <option value="Sales">Sales</option>
+                        <option value="Marketing">Marketing</option>
+                        <option value="Operations">Operations</option>
+                        <option value="Editor">Editor</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom:1.5rem;">
+                    <label for="attendance_type" style="color:var(--muted); font-weight:500; margin-bottom:0.5rem; display:block;">Work Type</label>
+                    <select id="attendance_type" name="attendance_type" required style="width:100%; padding:1rem; background:rgba(30,35,55,0.7); color:white; border:1px solid var(--border); border-radius:12px; font-size:1.1rem;">
+                        <option value="Onsite">🏢 Onsite (Office)</option>
+                        <option value="WFH">🏠 Work From Home</option>
+                        <option value="Field">🚗 Field Work</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width:100%; font-size:1.3rem; padding:1.2rem;">
+                    <i class="fas fa-check"></i> Mark Attendance
+                </button>
+            </form>
+
+            <!-- Time Status Info -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:1.5rem;">
+                <div style="background:rgba(16,185,129,0.2); padding:1rem; border-radius:12px; border:1px solid rgba(16,185,129,0.5);">
+                    <small style="color:var(--muted);">ON-TIME RANGE</small>
+                    <p style="font-size:1.3rem; font-weight:700; color:#10b981; margin:0.5rem 0 0;">10:00 - 10:15</p>
+                </div>
+                <div style="background:rgba(239,68,68,0.2); padding:1rem; border-radius:12px; border:1px solid rgba(239,68,68,0.5);">
+                    <small style="color:var(--muted);">LATE AFTER</small>
+                    <p style="font-size:1.3rem; font-weight:700; color:#ef4444; margin:0.5rem 0 0;">10:16+</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes pulse {
+    0%, 100% { transform:scale(1); opacity:0.7; }
+    50% { transform:scale(1.12); opacity:1; }
+}
+
+.btn {
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(124,58,237,0.4);
+}
+
+#faceCamera {
+    object-fit: cover;
+}
+</style>
+
+<script>
+// Global variables
+let faceStream = null;
+let capturedImageData = null;
+let recognizedEmployee = null;
+
+// Show JS errors in the UI for easier debugging
+window.addEventListener('error', function(event) {
+    const faceStatus = document.getElementById('faceStatus');
+    if (faceStatus) {
+        faceStatus.style.display = 'block';
+        faceStatus.style.color = '#ef4444';
+        faceStatus.textContent = 'JS error: ' + (event.message || 'An error occurred');
+    }
+});
+
+// Update current time every second
+function updateTime() {
+    const now = new Date();
+    // This would be shown if we had a time display
+}
+updateTime();
+setInterval(updateTime, 1000);
+
+// Face Recognition Setup
+async function startCamera() {
+    if (faceStream) {
+        return;
+    }
+
+    try {
+        const video = document.getElementById('faceCamera');
+        video.muted = true;
+
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            faceStream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: { ideal: 640 },
+                    height: { ideal: 480 },
+                    facingMode: 'user'
+                }
+            });
+        } else {
+            throw new Error('Camera not supported');
+        }
+
+        video.srcObject = faceStream;
+        await video.play();
+
+        await new Promise(resolve => {
+            if (video.readyState >= 2) {
+                resolve();
+            } else {
+                video.onloadedmetadata = resolve;
+            }
+        });
+
+        return true;
+    } catch (err) {
+        console.error('Camera access denied or not available:', err);
+        const faceStatus = document.getElementById('faceStatus');
+        faceStatus.style.display = 'block';
+        faceStatus.style.color = '#ef4444';
+
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+            faceStatus.innerHTML = '⚠ Camera access denied. Please click the camera icon in your browser address bar and allow access.';
+        } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+            faceStatus.innerHTML = '⚠ No camera found. Please connect a camera and try again.';
+        } else {
+            faceStatus.innerHTML = '⚠ Camera error: ' + err.message;
+        }
+
+        return false;
+    }
+}
+
+// Capture face from video
+function captureFace() {
+    const video = document.getElementById('faceCamera');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    capturedImageData = canvas.toDataURL('image/jpeg', 0.8);
+
+    const faceStatus = document.getElementById('faceStatus');
+    faceStatus.style.display = 'block';
+    faceStatus.style.color = '#10b981';
+    faceStatus.innerHTML = '✓ Face Captured Successfully';
+
+    // Try to recognize the face
+    recognizeFace(capturedImageData);
+}
+
+// Recognize face via API
+async function recognizeFace(imageData) {
+    try {
+        const response = await fetch('/api/verify-face', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                image_data: imageData
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success && result.employee) {
+            // Employee recognized - show attendance form
+            showEmployeeInfo(result.employee);
+            showAttendanceForm(result.employee.emp_id);
+        } else {
+            // Employee not recognized - show enrollment form
+            showEnrollmentForm();
+        }
+    } catch (error) {
+        console.error('Face recognition error:', error);
+        showEnrollmentForm();
+    }
+}
+
+// Show employee info when recognized
+function showEmployeeInfo(employee) {
+    recognizedEmployee = employee;
+    const employeeInfo = document.getElementById('employeeInfo');
+    const empDetails = document.getElementById('empDetails');
+
+    empDetails.innerHTML = `
+        <strong>ID:</strong> ${employee.emp_id}<br>
+        <strong>Name:</strong> ${employee.name}<br>
+        <strong>Department:</strong> ${employee.department}
+    `;
+
+    employeeInfo.style.display = 'block';
+}
+
+// Show enrollment form for new employees
+function showEnrollmentForm() {
+    document.getElementById('enrollmentForm').style.display = 'block';
+    document.getElementById('attendanceForm').style.display = 'none';
+    document.getElementById('employeeInfo').style.display = 'none';
+}
+
+// Show attendance form for recognized employees
+function showAttendanceForm(empId) {
+    document.getElementById('recognized_emp_id').value = empId;
+    if (recognizedEmployee) {
+        const deptSelect = document.getElementById('attendance_department');
+        if (deptSelect) {
+            deptSelect.value = recognizedEmployee.department || 'General';
+        }
+    }
+    document.getElementById('attendanceForm').style.display = 'block';
+    document.getElementById('enrollmentForm').style.display = 'none';
+}
+
+// Handle enrollment form submission
+const enrollForm = document.getElementById('faceEnrollForm');
+if (enrollForm) {
+    enrollForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        formData.append('image_data', capturedImageData);
+
+        try {
+            const response = await fetch('/api/enroll-face', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Employee enrolled successfully! You are now checked in.');
+                location.reload();
+            } else {
+                alert('Enrollment failed: ' + (result.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Enrollment error:', error);
+            alert('Enrollment failed. Please try again.');
+        }
+    });
+}
+
+// Handle attendance form submission
+const attendanceForm = document.getElementById('faceAttendanceForm');
+if (attendanceForm) {
+    attendanceForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+
+        // Ensure department is always sent (some browsers may omit it when it matches the default)
+        const departmentSelect = document.getElementById('attendance_department');
+        if (departmentSelect) {
+            formData.set('department', departmentSelect.value);
+        }
+
+        try {
+            const response = await fetch('/api/face-attendance', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert(result.message);
+                location.reload();
+            } else {
+                alert('Attendance marking failed: ' + (result.message || result.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Attendance error:', error);
+            alert('Attendance marking failed. Please try again.');
+        }
+    });
+}
+
+// Capture face button
+const captureBtn = document.getElementById('captureFaceBtn');
+if (captureBtn) {
+    captureBtn.addEventListener('click', function() {
+        if (!faceStream) {
+            startCamera().then((started) => {
+                if (started) {
+                    setTimeout(captureFace, 1000); // Wait for camera to stabilize
+                }
+            });
+        } else {
+            captureFace();
+        }
+    });
+}
+</script>
+
+{% endblock %}
